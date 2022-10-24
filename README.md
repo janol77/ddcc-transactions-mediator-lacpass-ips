@@ -90,3 +90,38 @@ curl --request POST --data "{}" --user admin:password http://localhost:5001/test
 ```
 
 The user details here are your OpenHIM ClientId and password.
+
+
+# Instrucciones Equipo Desarrollo
+
+## Correr DDCC con openhim
+
+```bash
+docker-compose -f docker/docker-compose.openhim.yml up -d
+```
+
+* cambiar el password en http://localhost:9000  usar el user:password (root@openhim.org:openhim-password)
+* ingresar http://localhost:9000 y crear un cliente http://localhost:9000/#!/clients  (client ID = ddcc y client Name = ddcc)
+** ir a pestaña authentication y crear credenciales del tipo Basic Auth
+* probar el nuevo usuario usando las credenciales (user/password --> ddcc:ddcc)
+
+```
+GET /ddcc/shc_issuer/.well-known/jwks.json HTTP/1.1
+Host: localhost:5001
+Authorization: Basic ZGRjYzpkZGNj
+```
+
+
+## Actualización de código
+
+* Para probar cambios
+
+```bash
+docker-compose -f docker/docker-compose.openhim.yml stop ddcc
+docker-compose -f docker/docker-compose.openhim.yml rm ddcc -y
+docker build -t openhie/ddcc-transactions-openhim:latest -t openhie/ddcc-transactions-openhim:v1.0.20 -f Dockerfile.openhim .
+docker-compose -f docker/docker-compose.openhim.yml up -d ddcc
+docker-compose -f docker/docker-compose.openhim.yml logs  --follow ddcc
+
+```
+

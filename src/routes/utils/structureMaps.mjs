@@ -15,8 +15,13 @@ export const transform = (structureMap, input) => {
           "Accept": "application/fhir+json;fhirVersion=4.0" 
         }
       })
-      .then( (res) => res.json() )
-      .then( (json) => resolve(json) )
+      .then( (res) => res.json())
+      .then( (json) => {
+        if (json.resourceType == "OperationOutcome") {
+          return Promise.reject(json.issue);
+        }
+        resolve(json)
+      })
       .catch( (err) => {
         logger.info("Error calling structure map: "+structureMap)
         reject(err)

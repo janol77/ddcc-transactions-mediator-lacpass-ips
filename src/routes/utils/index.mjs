@@ -258,7 +258,6 @@ const compileHealthCertificate = (options, QResponse) => {
         ]
       })
     }
-
     if ( QResponse ) {
       addBundle.entry.push( {
         resource: QResponse,
@@ -291,7 +290,10 @@ const compileHealthCertificate = (options, QResponse) => {
     } catch( err ) {
       logger.error( "Failed to add QR content to addBundle: " + err.message )
     }
-
+    let compfix = addBundle.entry.find( entry => entry.resource && entry.resource.resourceType === "Composition")
+    compfix.resource.event = [compfix.resource.event]
+    logger.info(JSON.stringify(compfix.resource.event, null, 4))
+    logger.info(JSON.stringify(addBundle.entry.find( entry => entry.resource && entry.resource.resourceType === "Composition"), null, 4))
     fetch(FHIR_SERVER, {
         method: "POST",
         body: JSON.stringify(addBundle),
@@ -358,7 +360,7 @@ const compileHealthCertificate = (options, QResponse) => {
           agent: [ {
             who: { identifier: { value: options.responses.certificate.issuer.identifier.value } }
           } ],
-          signature: {
+          signature: [{
             type: [
               {
                 system: "urn:iso-astm:E1762-95:2013",
@@ -368,7 +370,7 @@ const compileHealthCertificate = (options, QResponse) => {
             when: options.now,
             who: { identifier: { value: options.responses.certificate.issuer.identifier.value } },
             data: sign.toString("base64")
-          }
+          }]
         }
 
         let docBundle = {
@@ -393,7 +395,6 @@ const compileHealthCertificate = (options, QResponse) => {
             }
           ]
         }
-
         fetch(FHIR_SERVER, {
           method: "POST",
           body: JSON.stringify(docBundle),

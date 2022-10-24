@@ -9,6 +9,7 @@ services:
       MATCHBOX_SERVER: 'http://matchbox:8080/matchbox/fhir/'
       MEDIATOR_HOST: 'ddcc'
       OPENHIM_URL: 'https://core:8080'
+      OPENHIM_PASSWORD: 'ddcc.2022'
       TRUST_SELF_SIGNED: 'true'
     ports:
       - "4321:4321"
@@ -22,6 +23,7 @@ services:
     image: jembi/openhim-core:7
     environment:
       - mongo_url=mongodb://mongo-1:27017/openhim
+      - NODE_ENV="development"
       - mongo_atnaUrl=mongodb://mongo-1:27017/openhim
       - api_authenticationTypes=["token", "basic"]
       - authentication_enableCustomTokenAuthentication=true
@@ -67,10 +69,12 @@ services:
         target: /instant
     depends_on:
       - db
+    ports:
+        - "8081:8081"
 
   matchbox:
     container_name: matchbox-fhir
-    image: eu.gcr.io/fhir-ch/matchbox:v210
+    image: eu.gcr.io/fhir-ch/matchbox:v230
     environment:
       - HAPI_FHIR_IMPLEMENTATIONGUIDES_SDC_NAME=hl7.fhir.uv.sdc
       - HAPI_FHIR_IMPLEMENTATIONGUIDES_SDC_VERSION=2.7.0
@@ -80,7 +84,7 @@ services:
       - HAPI_FHIR_IMPLEMENTATIONGUIDES_DDCC_NAME=fhir.who.ddcc
       - HAPI_FHIR_IMPLEMENTATIONGUIDES_DDCC_VERSION=1.0.0
     ports:
-        - "8023:8080"
+        - "8282:8080"
 
   db:
     container_name: hapi-postgres
