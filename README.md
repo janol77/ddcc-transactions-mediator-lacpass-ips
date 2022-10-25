@@ -101,7 +101,9 @@ docker-compose -f docker/docker-compose.openhim.yml up -d
 ```
 
 * cambiar el password en http://localhost:9000  usar el user:password (root@openhim.org:openhim-password)
+* En el nuevo passoword poner contraseña ddcc.2022
 * ingresar http://localhost:9000 y crear un cliente http://localhost:9000/#!/clients  (client ID = ddcc y client Name = ddcc)
+* Ir a Mediators en el Sidebar y presionar en install para que se agregue el nuevo canal
 ** ir a pestaña authentication y crear credenciales del tipo Basic Auth
 * probar el nuevo usuario usando las credenciales (user/password --> ddcc:ddcc)
 
