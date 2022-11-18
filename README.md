@@ -97,12 +97,13 @@ The user details here are your OpenHIM ClientId and password.
 ## Correr DDCC con openhim
 
 ```bash
+docker build -t openhie/ddcc-transactions-openhim:latest -t openhie/ddcc-transactions-openhim:v1.0.20 -f Dockerfile.openhim .
 docker-compose -f docker/docker-compose.openhim.yml up -d
 ```
 
 * cambiar el password en http://localhost:9000  usar el user:password (root@openhim.org:openhim-password)
 * ingresar http://localhost:9000 y crear un cliente http://localhost:9000/#!/clients  (client ID = ddcc y client Name = ddcc)
-** ir a pestaña authentication y crear credenciales del tipo Basic Auth
+    * ir a pestaña authentication y crear credenciales del tipo Basic Auth
 * probar el nuevo usuario usando las credenciales (user/password --> ddcc:ddcc)
 
 ```
@@ -125,3 +126,8 @@ docker-compose -f docker/docker-compose.openhim.yml logs  --follow ddcc
 
 ```
 
+* Inspeccionar Base de datos de hapifhir(servidor: hapi-postgres)
+
+```
+docker run -itd --network=ddcc-net -p 9001:8080 adminer
+```

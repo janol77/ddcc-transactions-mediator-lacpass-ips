@@ -177,6 +177,7 @@ export const buildHealthCertificate = (DDCCParameters) => {
     options = QResponseInitializers[QResponse.questionnaire]()
     options.resources.QuestionnaireResponse = QResponse
     options.responses = await convertQRToCoreDataSet(QResponse)
+    logger.info(JSON.stringify(options.responses, null, 4))
     if ( !options.responses || options.responses.error ) {
       return resolve({
         resourceType: "OperationOutcome",
@@ -246,7 +247,7 @@ const compileHealthCertificate = (options, QResponse) => {
     }
 
     let addBundle = await processDDCCBundle(options.responses)
-    if ( addBundle.error ) {
+    if ( !addBundle || addBundle.error ) {
       return resolve({
         resourceType: "OperationOutcome",
         issue: [
@@ -284,23 +285,22 @@ const compileHealthCertificate = (options, QResponse) => {
         ]
       })
     }
-
     try {
+      logger.info(JSON.stringify(addBundle, null, 4))
       await addAllContent( addBundle, options.responses )
     } catch( err ) {
       logger.error( "Failed to add QR content to addBundle: " + err.message )
     }
     let compfix = addBundle.entry.find( entry => entry.resource && entry.resource.resourceType === "Composition")
     compfix.resource.event = [compfix.resource.event]
-    logger.info(JSON.stringify(compfix.resource.event, null, 4))
-    logger.info(JSON.stringify(addBundle.entry.find( entry => entry.resource && entry.resource.resourceType === "Composition"), null, 4))
+    logger.info("transaction")
     fetch(FHIR_SERVER, {
         method: "POST",
         body: JSON.stringify(addBundle),
         headers: { "Content-Type": "application/fhir+json" }
     }).then( res => res.json() )
     .then( json => {
-
+      logger.info("transaction response")
       let compEntry = addBundle.entry.find( entry => entry.resource && entry.resource.resourceType === "Composition" )
       if ( !compEntry ) {
         return resolve({
@@ -326,7 +326,7 @@ const compileHealthCertificate = (options, QResponse) => {
         } ]
         doc.link = [ { relation: "publication", url: "urn:HCID:" + options.responses.certificate.hcid.value } ]
         doc.entry = addBundle.entry;
-
+        logger.info(canonicalize(doc))
         let sign = crypto.sign("SHA256", canonicalize(doc), PRIVATE_KEY)
 
         doc.id = docId
@@ -348,7 +348,7 @@ const compileHealthCertificate = (options, QResponse) => {
         let provenance = {
           resourceType: "Provenance",
           id: uuidv4(),
-          target: { reference: "Document/"+docId },
+          target: { reference: "Bundle/"+docId },
           occurredDateTime: options.now,
           recorded: options.now,
           activity: {
@@ -395,6 +395,8 @@ const compileHealthCertificate = (options, QResponse) => {
             }
           ]
         }
+        logger.info("docBundle y provenance")
+        //logger.info(JSON.stringify(docBundle, null, 4))
         fetch(FHIR_SERVER, {
           method: "POST",
           body: JSON.stringify(docBundle),
@@ -402,7 +404,8 @@ const compileHealthCertificate = (options, QResponse) => {
         })
           .then((res) => res.json())
           .then((docAdded) => {
-
+            logger.info("docBundle y provenance response")
+            logger.info(JSON.stringify(docAdded, null, 4))
             createProvideDocumentBundle(doc, options)
 
             resolve(doc)

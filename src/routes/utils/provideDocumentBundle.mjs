@@ -138,7 +138,7 @@ const createPDBPDF = (doc, options) => {
           }
 
           let docRefs = oldDoc.entry.filter( entry => entry.resource.resourceType === "DocumentReference" )
-          let qrRef = docRefs.find( ref => ref.resource.category && ref.resource.category.find( cat => cat.coding && cat.coding.find( coding => coding.code === "who" ) ) )
+          let qrRef = docRefs.find( ref => ref.resource.type && ref.resource.type.coding && ref.resource.type.coding.find( coding => coding.code === "who" ) )
           if ( qrRef ) {
             let qr = qrRef.resource.content.find( content => content.attachment.contentType === "image/png" )
             dose.qr = qr.attachment.data
@@ -177,7 +177,7 @@ const createPDBPDF = (doc, options) => {
       doses: (typeof vacc.totalDoses === 'number' ? vacc.totalDoses.toString() : options.responses.vaccination.totalDoses)    }
 
     let docRefs = doc.entry.filter( entry => entry.resource.resourceType === "DocumentReference" )
-    let qrRef = docRefs.find( ref => ref.resource.category && ref.resource.category.find( cat => cat.coding && cat.coding.find( coding => coding.code === "who" ) ) )
+    let qrRef = docRefs.find( ref => ref.resource.type && ref.resource.type.coding && ref.resource.type.coding.find( coding => coding.code === "who" ) )
     if ( qrRef ) {
       let qr = qrRef.resource.content.find( content => content.attachment.contentType === "image/png" )
       dose.qr = qr.attachment.data
@@ -312,7 +312,8 @@ export const createProvideDocumentBundle = (doc, options) => {
         putPDBEntry(options.resources.Patient)
       ]
     }
-
+    logger.info("provideDocumentBundle")
+    //logger.info(JSON.stringify(provideDocumentBundle, null, 4))
     // Should change this to the a different config in case the registry is somewhere else.
     fetch(FHIR_SERVER, {
       method: "POST",
@@ -322,6 +323,7 @@ export const createProvideDocumentBundle = (doc, options) => {
       .then((res) => res.json())
       .then((json) => {
         logger.info("Saved provideDocumentBundle.")
+        //logger.info(JSON.stringify(json, null, 4))
       })
       .catch((err) => {
         logger.error(err.message)

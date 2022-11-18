@@ -9,8 +9,9 @@ const qrModules = { who, dcc, shc }
 
 export const addContent = ( qrDocRef, data ) => {
   return new Promise( async (resolve, reject) => {
-    let typeCode
-    qrDocRef.category.map( (category) => typeCode = category.coding.find( (coding) => coding.system === "http://worldhealthorganization.github.io/ddcc/CodeSystem/DDCC-QR-Category-Usage-CodeSystem"))
+    let typeCode = qrDocRef.type.coding.find( (coding) => coding.system === "http://worldhealthorganization.github.io/ddcc/CodeSystem/DDCC-QR-Type-CodeSystem")
+
+    //qrDocRef.category.map( (category) => typeCode = category.coding.find( (coding) => coding.system === "http://worldhealthorganization.github.io/ddcc/CodeSystem/DDCC-QR-Category-Usage-CodeSystem"))
     if ( !typeCode ) {
       return reject(new Error("Failed to find category in docRef."))
     }

@@ -4,6 +4,8 @@ services:
   ddcc:
     container_name: ddcc-transactions-mediator
     image: openhie/ddcc-transactions:latest
+    networks:
+      - ddcc-net
     environment:
       FHIR_SERVER: 'http://fhir:8080/fhir/'
       MATCHBOX_SERVER: 'http://matchbox:8080/matchbox/fhir/'
@@ -11,15 +13,17 @@ services:
       - "4321:4321"
     depends_on:
       - fhir
-      - matchbox
+      - resource-generation-service
 
   fhir:
     container_name: hapi-fhir
-    image: hapiproject/hapi:v5.4.1
+    image: hapiproject/hapi:v6.1.0
+    networks:
+      - ddcc-net
     environment:
       - spring.datasource.url=jdbc:postgresql://db:5432/hapi
-      - spring.datasource.username=admin
-      - spring.datasource.password=instant101
+      - spring.datasource.username=${POSTGRES_USER:-admin}
+      - spring.datasource.password=${POSTGRES_PASSWORD:-admin}
       - spring.datasource.driverClassName=org.postgresql.Driver
       - hapi.fhir.allow_external_references=true
       - hapi.fhir.max_page_size=50
@@ -34,33 +38,23 @@ services:
     depends_on:
       - db
 
-
-  matchbox:
-    container_name: matchbox-fhir
-    image: eu.gcr.io/fhir-ch/matchbox:v210
-    environment:
-      - HAPI_FHIR_IMPLEMENTATIONGUIDES_SDC_NAME=hl7.fhir.uv.sdc
-      - HAPI_FHIR_IMPLEMENTATIONGUIDES_SDC_VERSION=2.7.0
-      - HAPI_FHIR_IMPLEMENTATIONGUIDES_MHD_NAME=ihe.mhd.fhir
-      - HAPI_FHIR_IMPLEMENTATIONGUIDES_MHD_VERSION=4.0.1
-      - HAPI_FHIR_IMPLEMENTATIONGUIDES_DDCC_URL=https://worldhealthorganization.github.io/ddcc/package.tgz
-      - HAPI_FHIR_IMPLEMENTATIONGUIDES_DDCC_NAME=fhir.who.ddcc
-      - HAPI_FHIR_IMPLEMENTATIONGUIDES_DDCC_VERSION=1.0.0
-    volumes:
-      - type: volume
-        source: instant
-        target: /instant
-    # open matchbox ports for development
+  resource-generation-service:
+    container_name: resource-generation-service
+    image: censcl/ops-ddcc-resource-generation-service:v1.0
+    networks:
+      - ddcc-net
     ports:
-      - "9081:8080"
+        - "8023:8080"
 
   db:
     container_name: hapi-postgres
-    image: postgres
+    image: postgres:11-alpine
+    networks:
+      - ddcc-net
     environment:
       POSTGRES_DB: 'hapi'
-      POSTGRES_USER: 'admin'
-      POSTGRES_PASSWORD: 'instant101'
+      POSTGRES_USER: ${POSTGRES_USER:-admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-admin}
     volumes:
       - 'hapi-postgres:/var/lib/postgresql'
 
@@ -68,3 +62,7 @@ volumes:
   hapi-postgres:
   instant:
 
+networks:
+  ddcc-net:
+    external: false
+    name: ddcc-net
