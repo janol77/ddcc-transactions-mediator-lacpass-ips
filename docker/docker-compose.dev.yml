@@ -8,7 +8,14 @@ services:
       - ddcc-net
     environment:
       FHIR_SERVER: 'http://fhir:8080/fhir/'
-      MATCHBOX_SERVER: 'http://matchbox:8080/matchbox/fhir/'
+      MATCHBOX_SERVER: 'http://resource-generation-service:8080/fhir/'
+      MEDIATOR_HOST: 'ddcc'
+      OPENHIM_URL: 'https://core:8080'
+      OPENHIM_PASSWORD: 'ddcc.2022'
+      TRUST_SELF_SIGNED: 'true'
+      PRIVATE_KEY_FILE: '/app/cert-data/priv.pem'
+    volumes:
+      - ./../cert-data:/app/cert-data
     ports:
       - "4321:4321"
     depends_on:

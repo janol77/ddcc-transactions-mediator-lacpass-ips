@@ -13,6 +13,9 @@ services:
       OPENHIM_URL: 'https://core:8080'
       OPENHIM_PASSWORD: 'ddcc.2022'
       TRUST_SELF_SIGNED: 'true'
+      PRIVATE_KEY_FILE: '/app/cert-data/priv.pem'
+    volumes:
+      - ./../cert-data:/app/cert-data
     ports:
       - "4321:4321"
     depends_on:

@@ -94,6 +94,15 @@ The user details here are your OpenHIM ClientId and password.
 
 # Instrucciones Equipo Desarrollo
 
+## Crear llave Privada
+
+* agregar en la ruta /cert-data si ya cuenta con una llave privada
+
+```bash
+cd cert-data/
+openssl genrsa -out priv.pem 2048
+```
+
 ## Correr DDCC con openhim
 
 ```bash

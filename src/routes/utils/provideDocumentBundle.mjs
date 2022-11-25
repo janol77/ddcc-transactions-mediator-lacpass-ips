@@ -28,8 +28,8 @@ const postPDBEntry = (resourceType, tempId) => {
   }
 }
 
-const createPDBSubmissionSet = (options, folderId, docRefId, binaryRefId) => {
-  let entry = postPDBEntry("List", uuidv4())
+const createPDBSubmissionSet = (options, submissionSetId, folderId, docRefId, binaryRefId) => {
+  let entry = postPDBEntry("List", submissionSetId)
   entry.resource.identifier = [
     {
       use: "usual",
@@ -282,10 +282,112 @@ const createPDBFolder = (options, folderId, docRefId, binaryRefId) => {
   return entry
 }
 
+const createAuditEvent = (options, submissionSetId) => {
+  let entry = postPDBEntry("AuditEvent", uuidv4())
+  entry.resource.meta = {
+    profile: [
+      "https://profiles.ihe.net/ITI/MHD/StructureDefinition/IHE.MHD.ProvideBundle.Audit.Recipient"
+    ]
+  }
+  entry.resource.type = {
+    system: "http://dicom.nema.org/resources/ontology/DCM",
+    code: "110107",
+    display: "Import"
+  }
+  entry.resource.subtype = [
+    {
+      system: "urn:ihe:event-type-code",
+      code: "ITI-65",
+      display: "Provide Document Bundle"
+    }
+  ]
+  entry.resource.subtypeaction = "C"
+  entry.resource.subtyperecorded = options.now
+  entry.resource.subtypeoutcome = "0"
+  entry.resource.agent = [
+    {
+      type: {
+        coding: [
+          {
+            system: "http://dicom.nema.org/resources/ontology/DCM",
+            code: "110153",
+            display: "Source Role ID"
+          }
+        ]
+      },
+      who: {
+        display: "Solucion Digital"
+      },
+      requestor: true,
+    },
+    {
+      type: {
+        coding: [
+          {
+            system: "http://dicom.nema.org/resources/ontology/DCM",
+            code: "110152",
+            display: "Destination Role ID"
+          }
+        ]
+      },
+      who: {
+        display: "Servicio de generacion"
+      },
+      requestor: false,
+    }
+  ]
+  entry.resource.source = {
+    observer: {
+      display: "Solucion Digital"
+    },
+    type: [
+      {
+        system: "http://terminology.hl7.org/CodeSystem/security-source-type",
+        code: "4",
+        display: "Application Server"
+      }
+    ]
+  }
+  entry.resource.entity = [
+    {
+      what: {
+        reference: "Patient/" + options.resources.Patient.id
+      },
+      type: {
+        system: "http://terminology.hl7.org/CodeSystem/audit-entity-type",
+        code: "1",
+        display: "Person"
+      },
+      role: {
+        system: "http://terminology.hl7.org/CodeSystem/object-role",
+        code: "1",
+        display: "Patient"
+      }
+    },
+    {
+      what: {
+        reference: "urn:uuid:" + submissionSetId
+      },
+      type: {
+        system: "http://terminology.hl7.org/CodeSystem/audit-entity-type",
+        code: "2",
+        display: "System Object"
+      },
+      role: {
+        system: "http://terminology.hl7.org/CodeSystem/object-role",
+        code: "20",
+        display: "Job"
+      }
+    }
+  ]
+  return entry
+}
+
 export const createProvideDocumentBundle = (doc, options) => {
   let docRefId = uuidv4()
   let binaryRefId = uuidv4()
   let binaryId = uuidv4()
+  let submissionSetId = uuidv4()
   let folderId
   if ( options.resources.List ) {
     folderId = options.resources.List.id
@@ -297,19 +399,20 @@ export const createProvideDocumentBundle = (doc, options) => {
 
 
     let PDBBinary = createPDBBinary(options, binaryId)
-    
+    let submissionSet = createPDBSubmissionSet(options, submissionSetId, folderId, docRefId, binaryRefId)
 
 
     let provideDocumentBundle = {
       resourceType: "Bundle",
       type: "transaction",
       entry: [
-        createPDBSubmissionSet(options, folderId, docRefId, binaryRefId),
+        submissionSet,
         createPDBDocumentReference(options, docRefId, doc.id),
         PDBBinary,
         createPDBBinaryReference(options, binaryRefId, binaryId),
         createPDBFolder(options, folderId, docRefId, binaryRefId),
-        putPDBEntry(options.resources.Patient)
+        putPDBEntry(options.resources.Patient),
+        createAuditEvent(options, submissionSetId)
       ]
     }
     logger.info("provideDocumentBundle")
@@ -322,7 +425,8 @@ export const createProvideDocumentBundle = (doc, options) => {
     })
       .then((res) => res.json())
       .then((json) => {
-        logger.info("Saved provideDocumentBundle.")
+        logger.info("Saved provideDocumentBundle and auditEvent.")
+        
         //logger.info(JSON.stringify(json, null, 4))
       })
       .catch((err) => {

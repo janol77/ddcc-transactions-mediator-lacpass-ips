@@ -4,6 +4,7 @@ import express from 'express'
 
 import { buildReturnObject ,buildErrorObject, retrieveDocumentReference, buildHealthCertificate, buildIPSCertificate } from './utils'
 import {STANDALONE, PUBLIC_KEY_EC} from '../config/config'
+import { PUBLIC_KEY, PUBLIC_KEY_JWK } from "./utils/keys"
 import logger from '../logger'
 
 const routes = express.Router()
@@ -142,10 +143,12 @@ routes.post('/submitIPS', async (_req, res) => {
 } )
 
 routes.get('/shc_issuer/.well-known/jwks.json', async (_req, res) => {
+  let publicKeyJWK = PUBLIC_KEY_JWK
+  publicKeyJWK.alg = "RS256"
   return res.send(buildReturnObject(
     'Successful',
     200,
-    PUBLIC_KEY_EC
+    {keys: [PUBLIC_KEY_JWK]}
     )
   )
 } )

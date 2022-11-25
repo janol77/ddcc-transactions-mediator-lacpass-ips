@@ -13,7 +13,7 @@ import { createProvideDocumentBundle } from "./provideDocumentBundle"
 import { convertQRToCoreDataSet, convertIPSToCoreDataSet } from "./logicalModel"
 import { addAllContent } from "./qr"
 
-import { PRIVATE_KEY } from "./keys"
+import { PRIVATE_KEY, PUBLIC_KEY } from "./keys"
 
 import canonicalize from "./canonicalize"
 
@@ -233,6 +233,20 @@ export const buildIPSCertificate = (ips) => {
 
 const compileHealthCertificate = (options, QResponse) => {
   return new Promise(async (resolve) => {
+    //START Verifying existing Organization using pha as Organization name
+    let existingOrganization = await retrieveResource(
+      "Organization?name=" + options.responses.certificate.issuer.identifier.value
+    )
+    if (
+      existingOrganization &&
+      existingOrganization.resourceType === "Bundle" &&
+      existingOrganization.total > 0 &&
+      existingOrganization.entry &&
+      existingOrganization.entry[0].resource.resourceType === "Organization"
+    ) {
+      options.resources.Organization = existingOrganization.entry[0].resource
+    }
+    //END Verifying existing Organization using pha as Organization name
     let existingFolder = await retrieveResource(
       "List?identifier=" + FOLDER_IDENTIFIER_SYSTEM + "|" + options.responses.certificate.hcid.value
     )
@@ -259,6 +273,7 @@ const compileHealthCertificate = (options, QResponse) => {
         ]
       })
     }
+/*     
     if ( QResponse ) {
       addBundle.entry.push( {
         resource: QResponse,
@@ -268,7 +283,7 @@ const compileHealthCertificate = (options, QResponse) => {
         }
       })
     }
-
+ */
 
     let addPatient = addBundle.entry && addBundle.entry.find((entry) => entry.resource && entry.resource.resourceType === "Patient")
     if (addPatient) {
@@ -291,8 +306,14 @@ const compileHealthCertificate = (options, QResponse) => {
     } catch( err ) {
       logger.error( "Failed to add QR content to addBundle: " + err.message )
     }
-    let compfix = addBundle.entry.find( entry => entry.resource && entry.resource.resourceType === "Composition")
-    compfix.resource.event = [compfix.resource.event]
+    // START fix Organization ID
+    if ( options.resources.Organization ) {
+      let orgId = options.resources.Organization.id
+      let orgfix = addBundle.entry.find( entry => entry.resource && entry.resource.resourceType === "Organization")
+      orgfix.resource.id = orgId
+      orgfix.request.url = "Organization/" + orgId
+    }
+    // END fix Organization ID
     logger.info("transaction")
     fetch(FHIR_SERVER, {
         method: "POST",
@@ -325,54 +346,13 @@ const compileHealthCertificate = (options, QResponse) => {
           value: docId
         } ]
         doc.link = [ { relation: "publication", url: "urn:HCID:" + options.responses.certificate.hcid.value } ]
-        doc.entry = addBundle.entry;
-        logger.info(canonicalize(doc))
-        let sign = crypto.sign("SHA256", canonicalize(doc), PRIVATE_KEY)
-
+        doc.entry = addBundle.entry
+        doc.timestamp = options.now
+        delete doc.total
+        doc.entry.forEach(entry => {
+          delete entry.request
+        });
         doc.id = docId
-
-        /*
-        doc.signature = {
-          type: [
-            {
-              system: "urn:iso-astm:E1762-95:2013",
-              code: "1.2.840.10065.1.12.1.5"
-            }
-          ],
-          when: options.now,
-          who: { identifier: { value: options.responses.certificate.issuer.identifier.value } },
-          data: sign.toString("base64")
-        }
-        */
-
-        let provenance = {
-          resourceType: "Provenance",
-          id: uuidv4(),
-          target: { reference: "Bundle/"+docId },
-          occurredDateTime: options.now,
-          recorded: options.now,
-          activity: {
-            coding: [ {
-              system: "http://terminology.hl7.org/CodeSystem/v3-DocumentCompletion",
-              code: "LA"
-            } ]
-          },
-          agent: [ {
-            who: { identifier: { value: options.responses.certificate.issuer.identifier.value } }
-          } ],
-          signature: [{
-            type: [
-              {
-                system: "urn:iso-astm:E1762-95:2013",
-                code: "1.2.840.10065.1.12.1.5"
-              }
-            ],
-            when: options.now,
-            who: { identifier: { value: options.responses.certificate.issuer.identifier.value } },
-            data: sign.toString("base64")
-          }]
-        }
-
         let docBundle = {
           resourceType: "Bundle",
           type: "transaction",
@@ -384,31 +364,56 @@ const compileHealthCertificate = (options, QResponse) => {
                 method: "PUT",
                 url: "Bundle/"+docId
               }
-            },
-            {
-              fullUrl: "urn:uuid:" + provenance.id,
-              resource: provenance,
-              request: {
-                method: "PUT",
-                url: "Provenance/"+provenance.id
-              }
             }
           ]
         }
-        logger.info("docBundle y provenance")
-        //logger.info(JSON.stringify(docBundle, null, 4))
         fetch(FHIR_SERVER, {
           method: "POST",
           body: JSON.stringify(docBundle),
           headers: { "Content-Type": "application/fhir+json" }
         })
           .then((res) => res.json())
-          .then((docAdded) => {
-            logger.info("docBundle y provenance response")
-            logger.info(JSON.stringify(docAdded, null, 4))
-            createProvideDocumentBundle(doc, options)
+          .then(async (docAdded) => {
+            let savedDoc = await retrieveResource(docAdded.entry[0].response.location)
+            let bundleDocID = savedDoc.id
+            //INICIO Agregar firma al documento
+            delete savedDoc.meta
+            delete savedDoc.id
+            logger.info(doc)
+            let sign = crypto.sign("SHA256", canonicalize(savedDoc), PRIVATE_KEY)
+            savedDoc.signature = {
+              type: [
+                {
+                  system: "urn:iso-astm:E1762-95:2013",
+                  code: "1.2.840.10065.1.12.1.5"
+                }
+              ],
+              when: options.now,
+              who: { identifier: { value: options.responses.certificate.issuer.identifier.value } },
+              data: sign.toString("base64")
+            }
+            savedDoc.id = bundleDocID
+            fetch(FHIR_SERVER + "Bundle/" + bundleDocID, {
+              method: "PUT",
+              body: JSON.stringify(savedDoc),
+              headers: { "Content-Type": "application/fhir+json" }
+            })
+              .then((res) => res.json())
+              .then(async (docUpdated) => {
+                // // Verifying signature using crypto.verify() function
+                // let data = docUpdated.signature.data
+                // delete docUpdated.meta
+                // delete docUpdated.id
+                // delete docUpdated.signature
+                // const isVerified2 = crypto.verify("SHA256", canonicalize(docUpdated), PUBLIC_KEY, Buffer.from(data, 'base64'));
+                // // Printing the result
+                // logger.info('Is signature verified: ' + isVerified2);
+                logger.info("docBundle")
+                createProvideDocumentBundle(doc, options)
+                resolve(docUpdated)
+              })
+            //FIN Agregar firma al documento
 
-            resolve(doc)
           })
           .catch((err) => {
             return resolve({
