@@ -28,13 +28,27 @@ const postPDBEntry = (resourceType, tempId) => {
   }
 }
 
-const createPDBSubmissionSet = (options, submissionSetId, folderId, docRefId, binaryRefId) => {
+const createPDBSubmissionSet = (options, submissionSetId, folderId, docRefId, binaryRefId, docId) => {
   let entry = postPDBEntry("List", submissionSetId)
+  entry.resource.extension = [
+    {
+      url: "http://profiles.ihe.net/ITI/MHD/StructureDefinition/ihe-sourceId",
+      valueIdentifier: {
+        system: "origen",
+        value: "Solucion Digital"
+      }
+    }
+  ]
   entry.resource.identifier = [
     {
       use: "usual",
       system: SUBMISSIONSET_IDENTIFIER_SYSTEM,
-      value: entry.resource.id
+      value: submissionSetId
+    },
+    {
+      use: "official",
+      system: SUBMISSIONSET_IDENTIFIER_SYSTEM,
+      value: submissionSetId
     }
   ]
   entry.resource.subject = {
@@ -207,7 +221,16 @@ const createPDBBinary = (options, binaryId) => {
 }
 const createPDBDocumentReference = (options, docRefId, docId) => {
   let entry = postPDBEntry("DocumentReference", docRefId)
+  entry.resource.meta = {
+    profile: ["http://worldhealthorganization.github.io/ddcc/StructureDefinition/DDCCDocumentReference"]
+  }
   entry.resource.status = "current"
+  let identifier = {
+    "system": "http://worldhealthorganization.github.io/ddcc/DocumentReference",
+    "value": docId
+  }
+  entry.resource.identifier = [identifier]
+  entry.resource.masterIdentifier = identifier
   entry.resource.subject = {
     reference: "Patient/" + options.resources.Patient.id
   }
@@ -215,7 +238,7 @@ const createPDBDocumentReference = (options, docRefId, docId) => {
   entry.resource.content = [
     {
       attachment: {
-        contentType: "application/fhir",
+        contentType: "application/fhir+json",
         url: FHIR_SERVER + "Bundle/" + docId
       }
     }
@@ -231,6 +254,9 @@ const createPDBFolder = (options, folderId, docRefId, binaryRefId) => {
   } else {
     let resource = {
       resourceType: "List",
+      meta: {
+        profile: ["http://worldhealthorganization.github.io/ddcc/StructureDefinition/DDCCDocumentReference"]
+      },
       id: folderId,
       extension: [
         {
@@ -286,7 +312,7 @@ const createAuditEvent = (options, submissionSetId) => {
   let entry = postPDBEntry("AuditEvent", uuidv4())
   entry.resource.meta = {
     profile: [
-      "https://profiles.ihe.net/ITI/MHD/StructureDefinition/IHE.MHD.ProvideBundle.Audit.Recipient"
+      "http://profiles.ihe.net/ITI/MHD/StructureDefinition/IHE.MHD.ProvideBundle.Audit.Recipient"
     ]
   }
   entry.resource.type = {
@@ -301,9 +327,9 @@ const createAuditEvent = (options, submissionSetId) => {
       display: "Provide Document Bundle"
     }
   ]
-  entry.resource.subtypeaction = "C"
-  entry.resource.subtyperecorded = options.now
-  entry.resource.subtypeoutcome = "0"
+  entry.resource.action = "C"
+  entry.resource.recorded = options.now
+  entry.resource.outcome = "0"
   entry.resource.agent = [
     {
       type: {
@@ -319,6 +345,10 @@ const createAuditEvent = (options, submissionSetId) => {
         display: "Solucion Digital"
       },
       requestor: true,
+      network: {
+        address: "Servidor Solucion Digital",
+        type: "1"
+      }
     },
     {
       type: {
@@ -334,11 +364,15 @@ const createAuditEvent = (options, submissionSetId) => {
         display: "Servicio de generacion"
       },
       requestor: false,
+      network: {
+        address: "Servidor Servicio Generacion",
+        type: "1"
+      }
     }
   ]
   entry.resource.source = {
     observer: {
-      display: "Solucion Digital"
+      display: "Servicio de generacion"
     },
     type: [
       {
@@ -399,7 +433,7 @@ export const createProvideDocumentBundle = (doc, options) => {
 
 
     let PDBBinary = createPDBBinary(options, binaryId)
-    let submissionSet = createPDBSubmissionSet(options, submissionSetId, folderId, docRefId, binaryRefId)
+    let submissionSet = createPDBSubmissionSet(options, submissionSetId, folderId, docRefId, binaryRefId, doc.id)
 
 
     let provideDocumentBundle = {

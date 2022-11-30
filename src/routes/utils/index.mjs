@@ -61,7 +61,7 @@ export const buildReturnObject = (
       "x-mediator-urn": urn,
       status: openhimTransactionStatus,
       response: {
-        status: httpResponseStatusCode,
+        status: httpResponseStatusCode || 400,
         headers: { "content-type": responseContentType || "application/json" },
         body: responseBody,
         timestamp: new Date()
@@ -73,13 +73,29 @@ export const buildReturnObject = (
 }
 
 
-export const buildErrorObject = (errorMessage) => {
-  return buildReturnObject("Failed", 401, errorMessage)
+export const buildErrorObject = (errorMessage, code) => {
+  return buildReturnObject("Failed", code, errorMessage)
 }
 
-export const retrieveDocumentReference = (hcid) => {
-  logger.info("Retrieving Document Reference " + hcid)
-  return retrieveResource( "DocumentReference/" + hcid )
+export const retrieveDocumentReference = (id) => {
+  logger.info("Retrieving Document Reference " + id)
+  return retrieveResource( "DocumentReference/" + id )
+}
+
+export const retrieveListBundle = (query) => {
+  logger.info("Retrieving List")
+  return retrieveResource( "List?" + new URLSearchParams(query) )
+}
+
+export const validateDDCCDocument = (document) => {
+  logger.info("Verifying signature")
+  // Verifying signature using crypto.verify() function
+  let data = document.signature.data
+  delete document.meta
+  delete document.id
+  delete document.signature
+  const isVerified = crypto.verify("SHA256", canonicalize(document), PUBLIC_KEY, Buffer.from(data, 'base64'));  
+  return isVerified
 }
 
 export const retrieveResource = (id, server) => {
@@ -104,7 +120,26 @@ export const retrieveResource = (id, server) => {
   })
 }
 
-
+export const retrieveDocument = (url) => {
+  return new Promise((resolve) => {
+    fetch(url, {
+      method: "GET",
+      headers: { 
+        "Content-Type": "application/fhir+json", 
+        "Cache-Control": "no-cache" 
+      }
+    })
+      .then((res) => res.json())
+      .then((json) => {
+        logger.info("Retrieved Document")
+        resolve(json)
+      })
+      .catch((err) => {
+        logger.info("Error retrieving Document: " + url)
+        resolve({ error: JSON.stringify(err) })
+      })
+  })
+}
 
 //one needs to be defined for each questtonnaire handled
 let QResponseInitializers = {
@@ -177,7 +212,7 @@ export const buildHealthCertificate = (DDCCParameters) => {
     options = QResponseInitializers[QResponse.questionnaire]()
     options.resources.QuestionnaireResponse = QResponse
     options.responses = await convertQRToCoreDataSet(QResponse)
-    logger.info(JSON.stringify(options.responses, null, 4))
+    //logger.info(JSON.stringify(options.responses, null, 4))
     if ( !options.responses || options.responses.error ) {
       return resolve({
         resourceType: "OperationOutcome",
@@ -301,7 +336,7 @@ const compileHealthCertificate = (options, QResponse) => {
       })
     }
     try {
-      logger.info(JSON.stringify(addBundle, null, 4))
+      //logger.info(JSON.stringify(addBundle, null, 4))
       await addAllContent( addBundle, options.responses )
     } catch( err ) {
       logger.error( "Failed to add QR content to addBundle: " + err.message )
@@ -379,7 +414,7 @@ const compileHealthCertificate = (options, QResponse) => {
             //INICIO Agregar firma al documento
             delete savedDoc.meta
             delete savedDoc.id
-            logger.info(doc)
+            //logger.info(doc)
             let sign = crypto.sign("SHA256", canonicalize(savedDoc), PRIVATE_KEY)
             savedDoc.signature = {
               type: [

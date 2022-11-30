@@ -2,49 +2,127 @@
 
 import express from 'express'
 
-import { buildReturnObject ,buildErrorObject, retrieveDocumentReference, buildHealthCertificate, buildIPSCertificate } from './utils'
+import { buildReturnObject ,buildErrorObject, validateDDCCDocument, retrieveDocument, retrieveListBundle, retrieveDocumentReference, buildHealthCertificate, buildIPSCertificate } from './utils'
 import {STANDALONE, PUBLIC_KEY_EC} from '../config/config'
 import { PUBLIC_KEY, PUBLIC_KEY_JWK } from "./utils/keys"
 import logger from '../logger'
 
 const routes = express.Router()
+// ITI-66
+routes.get('/List', async (_req, res) => {
+  let query = _req.query
+  query.code = "folder"
 
-routes.get('/DocumentReference/:ddccid/([\$])getQRCode', async (_req, res) => {
-  let ddccid = _req.params.ddccid
-  logger.info('Retrieve QR Code endpoint triggered ID=' + ddccid)
 
-  let Document = await retrieveDocumentReference(ddccid)
+  logger.info('Retrieve Health Folder ITI-66')
+
+  let result = await retrieveListBundle(query)
   let returnObject
+  let statusCode = 200
 
-  if ( Document.resourceType !== "DocumentReference" ) {
-    logger.info("Did not recieve expected DocumentReference ID=" + ddccid )
-    logger.info("Recevied: " + JSON.stringify(Document))
-    returnObject = buildErrorObject("Could not retrieve DocumentReference")
+  if ( result.resourceType !== "Bundle" ) {
+    logger.info("Did not recieve expected List")
+    logger.info("Recevied: " + JSON.stringify(result))
+    statusCode = 400
+    returnObject = buildErrorObject(result, statusCode)
   } else {
-    logger.info("Processing DocumentReference ID=" + ddccid)
-    let attachment = Document.content[0].attachment
-    //attachment really should be obtained via a fhirpath query against a category/type/code (e.g. whp, icao, dgc...)
-    let image = Buffer.from(attachment.data, 'base64')
-
+    
+    logger.info("Processing elements")
     returnObject = buildReturnObject(
       'Successful',
-      '200',
-      image,
-      attachment.contentType
+      statusCode,
+      result,
+      "application/fhir+json"
     )
-    res.set('Content-Type', attachment.contentType)
-    res.set('Content-Disposition', 'inline; filename=QRCode_' + ddccid + '.png');
+  }
+  return res.status(statusCode).send(returnObject)
+} )
+// ITI-68
+routes.get('/DocumentReference/:id', async (_req, res) => {
+  let id = _req.params.id
+  let accept = "application/fhir+json"
+  logger.info('Retrieve DDCCVSDocument triggered ID=' + id)
 
-    if ( !STANDALONE ) {
-      res.set('Content-Type', 'application/json')
+  let docRef = await retrieveDocumentReference(id)
+  let returnObject
+  let statusCode = 200
+
+  if ( docRef.resourceType !== "DocumentReference" ) {
+    logger.info("Did not recieve expected DocumentReference ID=" + id )
+    logger.info("Recevied: " + JSON.stringify(docRef))
+    statusCode = 400
+    returnObject = buildErrorObject("Could not retrieve DocumentReference", statusCode)
+  } else {
+    logger.info("Processing DocumentReference ID=" + id)
+    let url = docRef.content[0].attachment.url
+    let document
+    if(docRef.content[0].attachment.contentType == accept) {
+      document = await retrieveDocument(url)
+      if ( document.resourceType !== "Bundle" ) {
+        logger.info("Did not recieve expected DDCCVSDocument=" + url )
+        logger.info("Recevied: " + JSON.stringify(document))
+        statusCode = 400
+        returnObject = buildErrorObject("Could not retrieve DDCCVSDocument", statusCode)
+      }
+      else {
+        logger.info("Processing elements")
+        returnObject = buildReturnObject(
+          'Successful',
+          statusCode,
+          document,
+          "application/fhir+json"
+        )
+      }
+    }
+    else {
+      statusCode = 400
+      returnObject = buildErrorObject("Could not retrieve DDCCVSDocument", statusCode)
     }
   }
 
-  return res.send(returnObject)
+  return res.status(statusCode).send(returnObject)
 
 } )
 
-routes.post('/submitHealthEvent', async (_req, res) => {
+// Sign Validation
+routes.post('/Bundle/([\$])signValidation', async (_req, res) => {
+  let document = _req.body
+  let returnObject
+  let statusCode = 200
+
+  if ( document.resourceType !== 'Bundle' || document.type !== 'document' || !document.signature.data) {
+    statusCode = 412
+    returnObject = buildErrorObject( { 
+      resourceType: "OperationOutcome",
+      issue: [
+        {
+          severity: "error",
+          code: "structure",
+          diagnostics: "The resource need to be a Bundle resource of type document with a signature data"
+        }
+      ] 
+    }, statusCode)
+  }
+  else{
+    let validationResult
+    let isVerified = validateDDCCDocument(document)
+    // Printing the result
+    logger.info('Is signature verified: ' + isVerified);
+    validationResult = {
+      valid: isVerified
+    }
+    returnObject = buildReturnObject(
+      'Successful',
+      statusCode,
+      validationResult,
+      "application/json"
+    )
+  }
+  return res.status(statusCode).send(returnObject)
+
+} )
+
+routes.post('/', async (_req, res) => {
   logger.info('Submit Health Event Endpoint Triggered')
   let returnBundle = {
     resourceType: "Bundle",
@@ -106,7 +184,7 @@ routes.post('/submitHealthEvent', async (_req, res) => {
   return res.send(returnObject)
 } )
 
-routes.post('/generateHealthCertificate', async (_req, res) => {
+routes.post('/QuestionnaireResponse/$generateHealthCertificate', async (_req, res) => {
   logger.info('Generate Health Certificate Endpoint Triggered')
 
   let Document = await buildHealthCertificate( _req.body )
