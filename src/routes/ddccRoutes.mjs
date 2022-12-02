@@ -109,7 +109,13 @@ routes.post('/Bundle/([\$])signValidation', async (_req, res) => {
     // Printing the result
     logger.info('Is signature verified: ' + isVerified);
     validationResult = {
-      valid: isVerified
+      resourceType: "Parameters",
+      parameter : [
+        {
+        name : "result",
+        valueBoolean : isVerified
+        }
+      ]
     }
     returnObject = buildReturnObject(
       'Successful',

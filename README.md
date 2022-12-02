@@ -1,29 +1,26 @@
 # WHO SVC Transactions Mediator
 **FROM: Openhim Production Bootstrap Mediator**
 
-## Startup
+>_This README.md file in also available in Spanish ([README-Spanish](README-translated/README-Spanish.md))._
 
-To startup this mediator, you are expected to have the following:
+## Prerrequisites
 
-- An instance of the OpenHIM-Core, OpenHIM-Console, and MongoDB running
-- An OpenHIM user account with permissions to access the API endpoint
-- An OpenHIM Client setup (clientId and password)
-
-**If not,** please see [this tutorial](https://github.com/jembi/openhim-mediator-tutorial)
+* Docker engine: https://docs.docker.com/engine/install/ 
+* Compose: https://docs.docker.com/compose/install/ 
 
 ---
 
-### Configuring Mediator
+## Configuring DDCC Mediator
 
 This mediator is configured using environment variables.
-
-> An [environment variable](https://medium.com/chingu/an-introduction-to-environment-variables-and-how-to-use-them-f602f66d15fa) is a variable whose value is set outside the program, typically through functionality built into the operating system or micro-service. An environment variable is made up of a name/value pair, and any number may be created and available for reference at a point in time.
 
 The following variables can be set:
 
 | Environment Variable | Default | Description |
 | --- | --- | --- |
-| SERVER_PORT | 4321 | The exposed port of the mediator |
+| FHIR_SERVER | http://fhir:8080/fhir/ | URL of data repository |
+| MATCHBOX_SERVER | http://resource-generation-service:8080/fhir/ | URL of resource transformer |
+| MEDIATOR_HOST | ddcc | HOST used in mediador|
 | OPENHIM_URL | <https://localhost:8080> | The location of the the OpenHIM API |
 | OPENHIM_USERNAME | root@openhim.org | Registered OpenHIM Username |
 | OPENHIM_PASSWORD | openhim-password | Password of the registered OpenHIM user |
@@ -31,49 +28,7 @@ The following variables can be set:
 
 ---
 
-### Supporting Software
-
-This mediator requires a FHIR server as well as a [Matchbox FHIR server](https://github.com/ahdis/matchbox) for handling structure maps.  You can set
-environment variables so the server knows where to access them.
-
-| Environment Variable | Default | Description |
-| --- | --- | --- |
-| FHIR_SERVER | http://localhost:8081/fhir/ | The path to the FHIR API. |
-| MATCHBOX_SERVER | http://localhost:8080/matchbox/fhir/ | The path to the Matchbox FHIR API |
-
-You can use docker-compose to start docker versions of the required software using the docker-compose.support.yml file:
-
-```
-docker-compose -f docker-compose.support.yml up
-```
-
----
-
-### Node && NPM
-
-To run the mediator open a terminal and navigate to the project directory and run the following commands:
-
-```sh
-npm install
-
-<Environment_Variables> npm run openhim
-```
-
-Example start command:
-
-```sh
-SERVER_PORT=4321 OPENHIM_PASSWORD=password npm openhim
-```
-
-To run the server in standalone mode without OpenHIM, you can use:
-
-```
-<Environment_Variables> npm run start
-```
-
----
-
-### Configuring OpenHIM
+## Configuring OpenHIM
 
 To route requests from a client to destination systems, the OpenHIM needs to have `channels` configured to listen for specific requests and send them to specific endpoints.
 
@@ -81,64 +36,71 @@ This mediator is configured (within [mediatorConfig.json](mediatorConfig.json)) 
 
 ---
 
-## Sending Requests
+## Instructions for the development team
 
-To make a basic POST request, open a terminal (or Postman) and make the following request:
+### Create a private key
 
-```sh
-curl --request POST --data "{}" --user admin:password http://localhost:5001/testEndpoint
-```
-
-The user details here are your OpenHIM ClientId and password.
-
-
-# Instrucciones Equipo Desarrollo
-
-## Crear llave Privada
-
-* agregar en la ruta /cert-data si ya cuenta con una llave privada
+* add the private key to the path /cert-data if you have one.
+* generate one inside de folder cert-data/
 
 ```bash
 cd cert-data/
 openssl genrsa -out priv.pem 2048
 ```
 
-## Correr DDCC con openhim
+### Run DDCC mediator with OpenHIM
+
+#### For use with an external repository
+
+* create an environment variable call FHIR_SERVER an a network call ddcc_net
+
+```bash
+export FHIR_SERVER=http://fhir:8080/fhir/
+docker network create -d bridge ddcc-net
+docker build -t openhie/ddcc-transactions-openhim:latest -t openhie/ddcc-transactions-openhim:v1.0.20 -f Dockerfile.openhim .
+docker-compose -f docker/docker-compose.openhim-external-repo.yml up -d
+```
+#### For use without an external repository 
 
 ```bash
 docker build -t openhie/ddcc-transactions-openhim:latest -t openhie/ddcc-transactions-openhim:v1.0.20 -f Dockerfile.openhim .
 docker-compose -f docker/docker-compose.openhim.yml up -d
 ```
 
-* cambiar el password en http://localhost:9000  usar el user:password (root@openhim.org:openhim-password)
-* En el nuevo passoword poner contraseña ddcc.2022
-* ingresar http://localhost:9000 y crear un cliente http://localhost:9000/#!/clients  (client ID = ddcc y client Name = ddcc)
-* Ir a Mediators en el Sidebar y en la lista en la unica fila que aparece, presionar en install para que se agregue el nuevo canal
-* ir a pestaña authentication y crear credenciales del tipo Basic Auth
-* probar el nuevo usuario usando las credenciales (user/password --> ddcc:ddcc)
 
+* Change the password in the OpenHIM console http://localhost:9000 use the user:passdord for access (root@openhim.org:openhim-password)
+* Use **ddcc.2022** as a new password
+* Login again into the console and use the user:password (root@openhim.org:ddcc.2022)
+* Create a client in http://localhost:9000/#!/clients (client ID = ddcc y client Name = ddcc)
+    * Go to authentication tab and add a basic auth password using `ddcc`
+    * Save changes
+* Go to Mediators page in the sidebar and install(+ button) the mediator to install the new channel
+* Test the new user using the credentials (user:password --> ddcc:ddcc)
+    * Example:
 ```
 GET /ddcc/shc_issuer/.well-known/jwks.json HTTP/1.1
 Host: localhost:5001
 Authorization: Basic ZGRjYzpkZGNj
 ```
 
+### Update the code changes
 
-## Actualización de código
+* Run this to test changes
 
-* Para probar cambios
+* Use `docker_file` **docker/docker-compose.openhim-external-repo.yml** or **docker/docker-compose.openhim.yml**
 
 ```bash
-docker-compose -f docker/docker-compose.openhim.yml stop ddcc
-docker-compose -f docker/docker-compose.openhim.yml rm ddcc -y
+docker-compose -f `docker_file` stop ddcc
+docker-compose -f `docker_file` rm ddcc -y
 docker build -t openhie/ddcc-transactions-openhim:latest -t openhie/ddcc-transactions-openhim:v1.0.20 -f Dockerfile.openhim .
-docker-compose -f docker/docker-compose.openhim.yml up -d ddcc
-docker-compose -f docker/docker-compose.openhim.yml logs  --follow ddcc
+docker-compose -f `docker_file` up -d ddcc
+docker-compose -f `docker_file` logs  --follow ddcc
 
 ```
 
-* Inspeccionar Base de datos de hapifhir(servidor: hapi-postgres)
+* if you want to inspect the database of hapifhir(server: hapi-postgres)
 
 ```
 docker run -itd --network=ddcc-net -p 9001:8080 adminer
 ```
+* Go to localhost:9001 and access to the database with credentials.

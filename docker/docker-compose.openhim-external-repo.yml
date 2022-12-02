@@ -1,0 +1,80 @@
+version: '3.3'
+
+services:
+  ddcc:
+    container_name: ddcc-transactions-mediator
+    image: openhie/ddcc-transactions-openhim:latest
+    networks:
+      - ddcc-net
+    environment:
+      FHIR_SERVER: '${FHIR_SERVER:?err}'
+      MATCHBOX_SERVER: 'http://resource-generation-service:8080/fhir/'
+      MEDIATOR_HOST: 'ddcc'
+      OPENHIM_URL: 'https://core:8080'
+      OPENHIM_PASSWORD: 'ddcc.2022'
+      TRUST_SELF_SIGNED: 'true'
+      PRIVATE_KEY_FILE: '/app/cert-data/priv.pem'
+    volumes:
+      - ./../cert-data:/app/cert-data
+    ports:
+      - "4321:4321"
+    depends_on:
+      - resource-generation-service
+      - core
+
+  core:
+    container_name: openhim-core
+    image: jembi/openhim-core:7
+    networks:
+      - ddcc-net
+    environment:
+      - mongo_url=mongodb://mongo-1:27017/openhim
+      - NODE_ENV="development"
+      - mongo_atnaUrl=mongodb://mongo-1:27017/openhim
+      - api_authenticationTypes=["token", "basic"]
+      - authentication_enableCustomTokenAuthentication=true
+    ports:
+      - "8080:8080"
+      - "5000:5000"
+      - "5001:5001"
+      - "5050:5050"
+      - "5051:5051"
+      - "5052:5052"
+    depends_on:
+      - mongo-1
+
+  mongo-1:
+    image: mongo:4.2
+    container_name: mongo-1
+    networks:
+      - ddcc-net
+    volumes:
+      - 'openhim-mongo1:/data/db'
+
+
+  console:
+    container_name: openhim-console
+    image: jembi/openhim-console:1.14
+    networks:
+      - ddcc-net
+    ports:
+        - "9000:80"
+    depends_on:
+      - core
+
+  resource-generation-service:
+    container_name: resource-generation-service
+    image: censcl/ops-ddcc-resource-generation-service:v1.0
+    networks:
+      - ddcc-net
+    ports:
+        - "8023:8080"
+
+volumes:
+  instant:
+  openhim-mongo1:
+
+networks:
+  ddcc-net:
+    external: true
+    name: ddcc-net
