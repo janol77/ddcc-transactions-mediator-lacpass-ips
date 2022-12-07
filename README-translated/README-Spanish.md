@@ -43,8 +43,8 @@ El mediador es configurado (dentro de [mediatorConfig.json](mediatorConfig.json)
 
 ### Crear llave Privada
 
-* agregar en la ruta /cert-data si ya cuenta con una llave privada
-* genere una llave privada dentro de la carpeta /cert-data
+* Agregar en la ruta /cert-data si ya cuenta con una llave privada
+* Genere una llave privada dentro de la carpeta /cert-data
 
 ```bash
 cd cert-data/
@@ -55,7 +55,10 @@ openssl genrsa -out priv.pem 2048
 
 #### Para el uso con un repositorio externo
 
-* create an environment variable call FHIR_SERVER an a network call ddcc_net
+
+* Revisar la guía de instalación [Instalación de repositorio](https://cens.atlassian.net/wiki/spaces/OD/pages/2011365377/Instalaci+n+Servidor+HL7+FHIR+OPS+DDCC+Repositorio)
+
+* Crear una variable de ambiente llamada FHIR_SERVER con la url del repositorio y una red llamada ddcc_net
 
 ```bash
 export FHIR_SERVER=http://fhir:8080/fhir/
