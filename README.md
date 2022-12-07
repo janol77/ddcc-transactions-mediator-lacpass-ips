@@ -52,7 +52,9 @@ openssl genrsa -out priv.pem 2048
 
 #### For use with an external repository
 
-* create an environment variable call FHIR_SERVER an a network call ddcc_net
+* Review installation guide [Repository install](https://cens.atlassian.net/wiki/spaces/OD/pages/2011365377/Instalaci+n+Servidor+HL7+FHIR+OPS+DDCC+Repositorio)
+
+* create an environment variable call FHIR_SERVER with the url of the repository and a network call ddcc_net
 
 ```bash
 export FHIR_SERVER=http://fhir:8080/fhir/
