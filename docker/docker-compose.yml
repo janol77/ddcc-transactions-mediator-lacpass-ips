@@ -3,16 +3,12 @@ version: '3.3'
 services:
   ddcc:
     container_name: ddcc-transactions-mediator
-    image: openhie/ddcc-transactions:latest
+    image: censcl/ops-ddcc-transactions-mediator:latest
     networks:
       - ddcc-net
     environment:
       FHIR_SERVER: 'http://fhir:8080/fhir/'
       MATCHBOX_SERVER: 'http://resource-generation-service:8080/fhir/'
-      MEDIATOR_HOST: 'ddcc'
-      OPENHIM_URL: 'https://core:8080'
-      OPENHIM_PASSWORD: 'ddcc.2022'
-      TRUST_SELF_SIGNED: 'true'
       PRIVATE_KEY_FILE: '/app/cert-data/priv.pem'
     volumes:
       - ./../cert-data:/app/cert-data
@@ -31,7 +27,7 @@ services:
       - spring.datasource.url=jdbc:postgresql://db:5432/hapi
       - spring.datasource.username=${POSTGRES_USER:-admin}
       - spring.datasource.password=${POSTGRES_PASSWORD:-admin}
-      - spring.datasource.driverClassName=org.postgresql.Driver
+      - spring.jpa.properties.hibernate.dialect=ca.uhn.fhir.jpa.model.dialect.HapiFhirPostgres94Dialect
       - hapi.fhir.allow_external_references=true
       - hapi.fhir.max_page_size=50
       - hapi.fhir.default_page_size=20

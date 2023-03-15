@@ -36,34 +36,35 @@ This mediator is configured (within [mediatorConfig.json](mediatorConfig.json)) 
 
 ---
 
-## Instructions for the development team
+## Instructions for the Development Team
 
 ### Create a private key
 
-* add the private key to the path /cert-data if you have one.
-* generate one inside de folder cert-data/
+* Add the private key to the path /cert-data if you have one.
+* Generate one inside de folder cert-data/
+* Elliptic Curve private + public key pair for use with ES256 signatures
 
 ```bash
 cd cert-data/
-openssl genrsa -out priv.pem 2048
+openssl ecparam -name prime256v1 -genkey -noout -out priv.pem
 ```
 
 ### Run DDCC mediator with OpenHIM
 
 #### For use with an external repository
 
-* create an environment variable call FHIR_SERVER an a network call ddcc_net
+* Create an environment variable call **FHIR_SERVER** and a network call **ddcc_net**
 
 ```bash
 export FHIR_SERVER=http://fhir:8080/fhir/
 docker network create -d bridge ddcc-net
-docker build -t openhie/ddcc-transactions-openhim:latest -t openhie/ddcc-transactions-openhim:v1.0.20 -f Dockerfile.openhim .
+docker build -t censcl/ops-ddcc-transactions-mediator:latest -t censcl/ops-ddcc-transactions-mediator:v1.0 -f Dockerfile.openhim .
 docker-compose -f docker/docker-compose.openhim-external-repo.yml up -d
 ```
 #### For use without an external repository 
 
 ```bash
-docker build -t openhie/ddcc-transactions-openhim:latest -t openhie/ddcc-transactions-openhim:v1.0.20 -f Dockerfile.openhim .
+docker build -t censcl/ops-ddcc-transactions-mediator:latest -t censcl/ops-ddcc-transactions-mediator:v1.0 -f Dockerfile.openhim .
 docker-compose -f docker/docker-compose.openhim.yml up -d
 ```
 
@@ -83,19 +84,54 @@ Host: localhost:5001
 Authorization: Basic ZGRjYzpkZGNj
 ```
 
+### Run DDCC mediator without OpenHIM
+
+#### For use with an external repository
+
+* Create an environment variable call **FHIR_SERVER** and a network call **ddcc_net**
+
+```bash
+export FHIR_SERVER=http://fhir:8080/fhir/
+docker network create -d bridge ddcc-net
+docker build -t censcl/ops-ddcc-transactions-mediator:latest -t censcl/ops-ddcc-transactions-mediator:v1.0 .
+docker-compose -f docker/docker-compose-external-repo.yml up -d
+```
+
+#### For use without an external repository 
+
+* Crear una red llamada **ddcc_net**
+
+```bash
+docker network create -d bridge ddcc-net
+docker build -t censcl/ops-ddcc-transactions-mediator:latest -t censcl/ops-ddcc-transactions-mediator:v1.0 .
+docker-compose -f docker/docker-compose.yml up -d
+```
+
+
 ### Update the code changes
 
 * Run this to test changes
 
-* Use `docker_file` **docker/docker-compose.openhim-external-repo.yml** or **docker/docker-compose.openhim.yml**
+* Use `docker_file` **docker/docker-compose.openhim-external-repo.yml** | **docker/docker-compose.openhim.yml** | **docker/docker-compose.yml** | **docker/docker-compose-external-repo.yml**
+
+#### With OpenHIM
 
 ```bash
 docker-compose -f `docker_file` stop ddcc
 docker-compose -f `docker_file` rm ddcc -y
-docker build -t openhie/ddcc-transactions-openhim:latest -t openhie/ddcc-transactions-openhim:v1.0.20 -f Dockerfile.openhim .
+docker build -t censcl/ops-ddcc-transactions-mediator:latest -t censcl/ops-ddcc-transactions-mediator:v1.0 -f Dockerfile.openhim .
 docker-compose -f `docker_file` up -d ddcc
 docker-compose -f `docker_file` logs  --follow ddcc
+```
 
+#### Without OpenHIM
+
+```bash
+docker-compose -f `docker_file` stop ddcc
+docker-compose -f `docker_file` rm ddcc -y
+docker build -t censcl/ops-ddcc-transactions-mediator:latest -t censcl/ops-ddcc-transactions-mediator:v1.0
+docker-compose -f `docker_file` up -d ddcc
+docker-compose -f `docker_file` logs  --follow ddcc
 ```
 
 * if you want to inspect the database of hapifhir(server: hapi-postgres)

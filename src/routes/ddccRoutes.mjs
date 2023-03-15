@@ -139,14 +139,14 @@ routes.post('/', async (_req, res) => {
   let batch = _req.body
 
   if ( batch.resourceType !== 'Bundle' || batch.type !== 'batch' 
-    || !batch.entry ) {
+    || !batch.entry || !Array.isArray(batch.entry)) {
     res.send( buildErrorObject( { 
       resourceType: "OperationOutcome",
       issue: [
         {
           severity: "error",
           code: "structure",
-          diagnostics: "Invalid resource type submitted"
+          diagnostics: "Invalid resource submitted"
         }
       ] 
     } ) )
@@ -228,7 +228,6 @@ routes.post('/submitIPS', async (_req, res) => {
 
 routes.get('/shc_issuer/.well-known/jwks.json', async (_req, res) => {
   let publicKeyJWK = PUBLIC_KEY_JWK
-  publicKeyJWK.alg = "RS256"
   return res.send(buildReturnObject(
     'Successful',
     200,
