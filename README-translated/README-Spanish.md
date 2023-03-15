@@ -56,7 +56,10 @@ openssl ecparam -name prime256v1 -genkey -noout -out priv.pem
 
 #### Para el uso con un repositorio externo
 
-* Crear una variable de ambiente llamada **FHIR_SERVER** y una red llamada **ddcc_net**
+
+* Revisar la guía de instalación [Instalación de repositorio](https://cens.atlassian.net/wiki/spaces/OD/pages/2011365377/Instalaci+n+Servidor+HL7+FHIR+OPS+DDCC+Repositorio)
+
+* Crear una variable de ambiente llamada **FHIR_SERVER** con la url del repositorio y una red llamada **ddcc_net**
 
 ```bash
 export FHIR_SERVER=http://fhir:8080/fhir/
