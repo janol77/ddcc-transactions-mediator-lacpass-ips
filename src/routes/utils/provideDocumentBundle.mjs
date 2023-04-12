@@ -99,7 +99,6 @@ const createPDBBinaryReference = (options, binaryRefId, binaryId) => {
 
 const createPDBPDF = (doc, options) => {
   return new Promise( async (resolve) => {
-
     let details = {
       hcid: options.responses.certificate.hcid.value,
       name: options.responses.name,

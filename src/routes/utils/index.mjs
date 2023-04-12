@@ -282,6 +282,32 @@ const compileHealthCertificate = (options, QResponse) => {
       options.resources.Organization = existingOrganization.entry[0].resource
     }
     //END Verifying existing Organization using pha as Organization name
+    //START Verifying existing Patient using identifier as Patient identifier
+    if(!options.responses.identifier){
+      return resolve({
+        resourceType: "OperationOutcome",
+        issue: [
+          {
+            severity: "error",
+            code: "exception",
+            diagnostics: "Missing patient identifier"
+          }
+        ]
+      })
+    }
+    let existingPatient = await retrieveResource(
+      "Patient?identifier=" + options.responses.identifier
+    )
+    if (
+      existingPatient &&
+      existingPatient.resourceType === "Bundle" &&
+      existingPatient.total > 0 &&
+      existingPatient.entry &&
+      existingPatient.entry[0].resource.resourceType === "Patient"
+    ) {
+      options.resources.Patient = existingPatient.entry[0].resource
+    }
+    //END Verifying existing Organization using identifier as Patient identifier
     let existingFolder = await retrieveResource(
       "List?identifier=" + FOLDER_IDENTIFIER_SYSTEM + "|" + options.responses.certificate.hcid.value
     )
@@ -322,7 +348,12 @@ const compileHealthCertificate = (options, QResponse) => {
 
     let addPatient = addBundle.entry && addBundle.entry.find((entry) => entry.resource && entry.resource.resourceType === "Patient")
     if (addPatient) {
-      options.resources.Patient = addPatient.resource
+      if(!options.resources.Patient ){
+        options.resources.Patient = addPatient.resource
+      }
+      else{
+        logger.info( "Patient identifier: " + options.responses.identifier + " exist")
+      }
     } else {
       return resolve({
         resourceType: "OperationOutcome",
@@ -349,6 +380,14 @@ const compileHealthCertificate = (options, QResponse) => {
       orgfix.request.url = "Organization/" + orgId
     }
     // END fix Organization ID
+    // START fix Patient ID
+    if ( options.resources.Patient ) {
+      let patId = options.resources.Patient.id
+      let patfix = addBundle.entry.find( entry => entry.resource && entry.resource.resourceType === "Patient")
+      patfix.resource.id = patId
+      patfix.request.url = "Patient/" + patId
+    }
+    // END fix Patient ID
     logger.info("transaction")
     fetch(FHIR_SERVER, {
         method: "POST",

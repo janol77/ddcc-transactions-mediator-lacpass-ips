@@ -49,5 +49,6 @@ RUN npm install
 
 COPY . .
 
+RUN npm run swagger-autogen
 CMD npm run openhim
 EXPOSE 4321

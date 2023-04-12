@@ -10,6 +10,7 @@ import logger from '../logger'
 const routes = express.Router()
 // ITI-66
 routes.get('/List', async (_req, res) => {
+  // #swagger.description = 'Obtener Carpeta de Salud (ITI-66)'
   let query = _req.query
   query.code = "folder"
 
@@ -39,6 +40,7 @@ routes.get('/List', async (_req, res) => {
 } )
 // ITI-68
 routes.get('/DocumentReference/:id', async (_req, res) => {
+  // #swagger.description = 'Obtener Certificado (ITI-68)'
   let id = _req.params.id
   let accept = "application/fhir+json"
   logger.info('Retrieve DDCCVSDocument triggered ID=' + id)
@@ -86,6 +88,7 @@ routes.get('/DocumentReference/:id', async (_req, res) => {
 
 // Sign Validation
 routes.post('/Bundle/([\$])signValidation', async (_req, res) => {
+  // #swagger.description = 'Validar Certificado DDCC'
   let document = _req.body
   let returnObject
   let statusCode = 200
@@ -129,6 +132,7 @@ routes.post('/Bundle/([\$])signValidation', async (_req, res) => {
 } )
 
 routes.post('/', async (_req, res) => {
+  // #swagger.description = 'Generar Certificado DDCC'
   logger.info('Submit Health Event Endpoint Triggered')
   let returnBundle = {
     resourceType: "Bundle",
@@ -140,7 +144,7 @@ routes.post('/', async (_req, res) => {
 
   if ( batch.resourceType !== 'Bundle' || batch.type !== 'batch' 
     || !batch.entry || !Array.isArray(batch.entry)) {
-    res.send( buildErrorObject( { 
+    return res.send( buildErrorObject( { 
       resourceType: "OperationOutcome",
       issue: [
         {
@@ -157,7 +161,7 @@ routes.post('/', async (_req, res) => {
       resource: {},
       response: {}
     }
-    if ( entry.request.method === "POST" 
+    if ( entry.request && entry.request.method && entry.request.url && entry.request.method === "POST" 
       && entry.request.url === "QuestionnaireResponse/$generateHealthCertificate"
     ) {
       responseEntry.resource = await buildHealthCertificate( entry.resource )
@@ -167,14 +171,14 @@ routes.post('/', async (_req, res) => {
         responseEntry.response.status = "201"
       }
     } else {
-      responseEntry.response.status = "404"
+      responseEntry.response.status = "400"
       responseEntry.resource = {
         resourceType: "OperationOutcome",
         issue: [
           {
             severity: "error",
             code: "not-found",
-            diagnostics: "Can't handle this type of request"
+            diagnostics: "Invalid entry resource submitted"
           }
         ]
       }

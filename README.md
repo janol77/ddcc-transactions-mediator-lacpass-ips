@@ -131,7 +131,7 @@ docker-compose -f `docker_file` logs  --follow ddcc
 ```bash
 docker-compose -f `docker_file` stop ddcc
 docker-compose -f `docker_file` rm ddcc -y
-docker build -t censcl/ops-ddcc-transactions-mediator:latest -t censcl/ops-ddcc-transactions-mediator:v1.0
+docker build -t censcl/ops-ddcc-transactions-mediator:latest -t censcl/ops-ddcc-transactions-mediator:v1.0 .
 docker-compose -f `docker_file` up -d ddcc
 docker-compose -f `docker_file` logs  --follow ddcc
 ```
