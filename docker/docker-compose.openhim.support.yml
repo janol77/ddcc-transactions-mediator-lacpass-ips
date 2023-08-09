@@ -50,6 +50,7 @@ services:
       - spring.datasource.username=${POSTGRES_USER:-admin}
       - spring.datasource.password=${POSTGRES_PASSWORD:-admin}
       - spring.datasource.driverClassName=org.postgresql.Driver
+      - spring.jpa.properties.hibernate.dialect=ca.uhn.fhir.jpa.model.dialect.HapiFhirPostgres94Dialect
       - hapi.fhir.allow_external_references=true
       - hapi.fhir.max_page_size=50
       - hapi.fhir.default_page_size=20
