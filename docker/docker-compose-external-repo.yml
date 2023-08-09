@@ -3,7 +3,7 @@ version: '3.3'
 services:
   ddcc:
     container_name: ddcc-transactions-mediator
-    image: censcl/ops-ddcc-transactions-mediator:latest
+    image: censcl/ops-ddcc-transactions-mediator-lacpass-ips:latest
     networks:
       - ddcc-net
     environment:

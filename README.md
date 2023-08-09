@@ -60,13 +60,13 @@ openssl ecparam -name prime256v1 -genkey -noout -out priv.pem
 ```bash
 export FHIR_SERVER=http://fhir:8080/fhir/
 docker network create -d bridge ddcc-net
-docker build -t censcl/ops-ddcc-transactions-mediator:latest -t censcl/ops-ddcc-transactions-mediator:v1.0 -f Dockerfile.openhim .
+docker build -t censcl/ops-ddcc-transactions-mediator-lacpass-ips:latest -t censcl/ops-ddcc-transactions-mediator-lacpass-ips:v1.0 -f Dockerfile.openhim .
 docker-compose -f docker/docker-compose.openhim-external-repo.yml up -d
 ```
 #### For use without an external repository 
 
 ```bash
-docker build -t censcl/ops-ddcc-transactions-mediator:latest -t censcl/ops-ddcc-transactions-mediator:v1.0 -f Dockerfile.openhim .
+docker build -t censcl/ops-ddcc-transactions-mediator-lacpass-ips:latest -t censcl/ops-ddcc-transactions-mediator-lacpass-ips:v1.0 -f Dockerfile.openhim .
 docker-compose -f docker/docker-compose.openhim.yml up -d
 ```
 
@@ -95,7 +95,7 @@ Authorization: Basic ZGRjYzpkZGNj
 ```bash
 export FHIR_SERVER=http://fhir:8080/fhir/
 docker network create -d bridge ddcc-net
-docker build -t censcl/ops-ddcc-transactions-mediator:latest -t censcl/ops-ddcc-transactions-mediator:v1.0 .
+docker build -t censcl/ops-ddcc-transactions-mediator-lacpass-ips:latest -t censcl/ops-ddcc-transactions-mediator-lacpass-ips:v1.0 .
 docker-compose -f docker/docker-compose-external-repo.yml up -d
 ```
 
@@ -105,7 +105,7 @@ docker-compose -f docker/docker-compose-external-repo.yml up -d
 
 ```bash
 docker network create -d bridge ddcc-net
-docker build -t censcl/ops-ddcc-transactions-mediator:latest -t censcl/ops-ddcc-transactions-mediator:v1.0 .
+docker build -t censcl/ops-ddcc-transactions-mediator-lacpass-ips:latest -t censcl/ops-ddcc-transactions-mediator-lacpass-ips:v1.0 .
 docker-compose -f docker/docker-compose.yml up -d
 ```
 
@@ -121,7 +121,7 @@ docker-compose -f docker/docker-compose.yml up -d
 ```bash
 docker-compose -f `docker_file` stop ddcc
 docker-compose -f `docker_file` rm ddcc -y
-docker build -t censcl/ops-ddcc-transactions-mediator:latest -t censcl/ops-ddcc-transactions-mediator:v1.0 -f Dockerfile.openhim .
+docker build -t censcl/ops-ddcc-transactions-mediator-lacpass-ips:latest -t censcl/ops-ddcc-transactions-mediator-lacpass-ips:v1.0 -f Dockerfile.openhim .
 docker-compose -f `docker_file` up -d ddcc
 docker-compose -f `docker_file` logs  --follow ddcc
 ```
@@ -131,7 +131,7 @@ docker-compose -f `docker_file` logs  --follow ddcc
 ```bash
 docker-compose -f `docker_file` stop ddcc
 docker-compose -f `docker_file` rm ddcc -y
-docker build -t censcl/ops-ddcc-transactions-mediator:latest -t censcl/ops-ddcc-transactions-mediator:v1.0 .
+docker build -t censcl/ops-ddcc-transactions-mediator-lacpass-ips:latest -t censcl/ops-ddcc-transactions-mediator-lacpass-ips:v1.0 .
 docker-compose -f `docker_file` up -d ddcc
 docker-compose -f `docker_file` logs  --follow ddcc
 ```

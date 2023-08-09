@@ -120,6 +120,36 @@ export const retrieveResource = (id, server) => {
   })
 }
 
+export const expungeResource = (id, server) => {
+  if (!server) server = FHIR_SERVER
+  return new Promise((resolve) => {
+    let content = {
+      resourceType: "Parameters",
+      parameter: [
+        {
+          name: "expungeDeletedResources",
+          valueBoolean: true
+        }
+      ]
+    }
+    fetch(server + id + "?_expunge=true", {
+      method: "DELETE",
+      headers: { 
+        "Content-Type": "application/fhir+json"
+      }
+    })
+      .then((res) => res.json())
+      .then((json) => {
+        logger.info("Expunge ID="+id)
+        resolve(json)
+      })
+      .catch((err) => {
+        logger.info("Error deleting Resource ID=" + id)
+        resolve({ error: JSON.stringify(err) })
+      })
+  })
+}
+
 export const retrieveDocument = (url) => {
   return new Promise((resolve) => {
     fetch(url, {
@@ -466,6 +496,19 @@ const compileHealthCertificate = (options, QResponse) => {
               who: { identifier: { value: options.responses.certificate.issuer.identifier.value } },
               data: sign.toString("base64")
             }
+            // EXPUNGE RESOURCES
+            let compToDelete = addBundle.entry.find( entry => entry.resource && entry.resource.resourceType === "Composition")
+            if ( compToDelete ) {await expungeResource("Composition/" + compToDelete.resource.id)}
+            let imnRecToDelete = addBundle.entry.find( entry => entry.resource && entry.resource.resourceType === "ImmunizationRecommendation")
+            if ( imnRecToDelete ) {await expungeResource("ImmunizationRecommendation/" + imnRecToDelete.resource.id)}  
+            let imnToDelete = addBundle.entry.find( entry => entry.resource && entry.resource.resourceType === "Immunization")
+            if ( imnToDelete ) {await expungeResource("Immunization/" + imnToDelete.resource.id)}   
+            let docrefToDelete = addBundle.entry.find( entry => entry.resource && entry.resource.resourceType === "DocumentReference")
+            if ( docrefToDelete ) {await expungeResource("DocumentReference/" + docrefToDelete.resource.id)}                               
+            let orgToDelete = addBundle.entry.find( entry => entry.resource && entry.resource.resourceType === "Organization")
+            if ( orgToDelete ) {await expungeResource("Organization/" + orgToDelete.resource.id)}     
+            let patToDelete = addBundle.entry.find( entry => entry.resource && entry.resource.resourceType === "Patient")
+            if ( patToDelete ) {await expungeResource("Patient/" + patToDelete.resource.id)}          
             savedDoc.id = bundleDocID
             fetch(FHIR_SERVER + "Bundle/" + bundleDocID, {
               method: "PUT",
@@ -483,7 +526,7 @@ const compileHealthCertificate = (options, QResponse) => {
                 // // Printing the result
                 // logger.info('Is signature verified: ' + isVerified2);
                 logger.info("docBundle")
-                createProvideDocumentBundle(doc, options)
+                //createProvideDocumentBundle(doc, options)
                 resolve(docUpdated)
               })
             //FIN Agregar firma al documento
