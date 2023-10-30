@@ -10,6 +10,8 @@ services:
       FHIR_SERVER: 'http://fhir:8080/fhir/'
       MATCHBOX_SERVER: 'http://resource-generation-service:8080/fhir/'
       PRIVATE_KEY_FILE: '/app/cert-data/priv.pem'
+      PUBLIC_KEY_FILE: '/app/cert-data/DSCcert.pem'
+      COUNTRY_CODE: 'xcl'
     volumes:
       - ./../cert-data:/app/cert-data
     ports:

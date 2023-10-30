@@ -1,8 +1,4 @@
-FROM node:gallium
-
-WORKDIR /app
-
-COPY package.json package-lock.json ./
+FROM node:lts-bullseye
 
 RUN apt-get update && apt-get install -y \
       gconf-service \
@@ -43,6 +39,10 @@ RUN apt-get update && apt-get install -y \
       lsb-release \
       xdg-utils \
       wget
+
+WORKDIR /app
+
+COPY package.json package-lock.json ./
 
 RUN npm install -g npm
 RUN npm install

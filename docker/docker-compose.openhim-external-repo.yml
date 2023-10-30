@@ -14,6 +14,8 @@ services:
       OPENHIM_PASSWORD: 'ddcc.2022'
       TRUST_SELF_SIGNED: 'true'
       PRIVATE_KEY_FILE: '/app/cert-data/priv2.pem'
+      PUBLIC_KEY_FILE: '/app/cert-data/DSCcert.pem'
+      COUNTRY_CODE: 'xcl'
     volumes:
       - ./../cert-data:/app/cert-data
     ports:

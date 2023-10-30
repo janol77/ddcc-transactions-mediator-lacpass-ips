@@ -30,3 +30,8 @@ export const SHC_ISSUER = 'https://localhost:4321/shc_issuer';
 
 // File for key
 export const PRIVATE_KEY_FILE = process.env.PRIVATE_KEY_FILE || './priv.pem'
+export const PUBLIC_KEY_FILE = process.env.PUBLIC_KEY_FILE || './DSCcert.pem'
+
+// Country Code
+
+export const COUNTRYCODE = process.env.COUNTRY_CODE || 'NONE'

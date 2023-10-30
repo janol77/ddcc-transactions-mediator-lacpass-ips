@@ -1,6 +1,6 @@
 import {transliterate} from 'transliteration'
 import { PRIVATE_KEY, PUBLIC_KEY } from "../keys"
-import { makeCWT, signAndPack } from "@pathcheck/dcc-sdk"
+import { makeCWT, signAndPack } from "@censcl/dcc-sdk"
 
 export const serialize = ( data, id ) => {
   //Not the best option, but something for now
