@@ -13,9 +13,9 @@ services:
       OPENHIM_URL: 'https://core:8080'
       OPENHIM_PASSWORD: 'ddcc.2022'
       TRUST_SELF_SIGNED: 'true'
-      PRIVATE_KEY_FILE: '/app/cert-data/priv2.pem'
+      PRIVATE_KEY_FILE: '/app/cert-data/DSC01privkey.key'
       PUBLIC_KEY_FILE: '/app/cert-data/DSCcert.pem'
-      COUNTRY_CODE: 'xcl'
+      COUNTRY_CODE: 'XCL'
     volumes:
       - ./../cert-data:/app/cert-data
     ports:
