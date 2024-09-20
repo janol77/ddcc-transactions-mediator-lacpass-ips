@@ -200,7 +200,7 @@ routes.post('/QuestionnaireResponse/$generateHealthCertificate', async (_req, re
   let Document = await buildHealthCertificate( _req.body )
   let returnObject
 
-  if ( Document.resourceType !== "Bundle" ) {
+  if ( Document.resourceType !== "DocumentReference" ) {
     returnObject = buildErrorObject( Document )
   } else {
     returnObject = buildReturnObject(

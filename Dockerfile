@@ -50,5 +50,5 @@ RUN npm install
 COPY . .
 
 RUN npm run swagger-autogen
-CMD npm start
+CMD ["npm", "start"]
 EXPOSE 4321

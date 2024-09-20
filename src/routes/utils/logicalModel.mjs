@@ -41,3 +41,18 @@ export const convertIPSToCoreDataSet = (bundle) => {
     })
   })
 }
+
+export const convertQRToDVC = (QResponse) => {
+
+  return new Promise((resolve) => {
+    transform( "QRespDVCToDVC", QResponse , true)
+    .then((transformed) => {
+      logger.info("Converted QResp to DVC")
+      resolve(transformed)
+    }).catch((err) => {
+      logger.info("Error converting QResp to DVC")
+      resolve({ error: JSON.stringify(err) })
+    })
+  })
+
+}

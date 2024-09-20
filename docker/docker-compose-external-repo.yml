@@ -21,7 +21,7 @@ services:
 
   resource-generation-service:
     container_name: resource-generation-service
-    image: censcl/ops-ddcc-resource-generation-service:v1.0
+    image: censcl/ops-ddcc-resource-generation-service:v2.0
     networks:
       - ddcc-net
     ports:

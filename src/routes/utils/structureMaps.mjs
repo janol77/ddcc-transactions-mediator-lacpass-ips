@@ -1,13 +1,17 @@
 import logger from "../../logger"
 import fetch from "node-fetch"
 
-import { MATCHBOX_SERVER, DDCC_CANONICAL_BASE } from "../../config/config"
+import { MATCHBOX_SERVER, DDCC_CANONICAL_BASE, DVC_CANONICAL_BASE } from "../../config/config"
 
 
-export const transform = (structureMap, input) => {
+export const transform = (structureMap, input, dvc=false) => {
+  let base = DDCC_CANONICAL_BASE
+  if (dvc) {
+    base = DVC_CANONICAL_BASE
+  }
   return new Promise( (resolve, reject) => {
     fetch( MATCHBOX_SERVER + "StructureMap/$transform?source="
-      + DDCC_CANONICAL_BASE + "StructureMap/" + structureMap, {
+      + base + "StructureMap/" + structureMap, {
         method: "POST",
         body: JSON.stringify(input),
         headers: { 

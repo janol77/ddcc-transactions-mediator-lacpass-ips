@@ -21,6 +21,7 @@ export const FHIR_SERVER = process.env.FHIR_SERVER || 'http://localhost:8081/fhi
 export const MATCHBOX_SERVER = process.env.MATCHBOX_SERVER || 'http://localhost:8080/matchbox/fhir/'
 
 // SYSTEMS
+export const DVC_CANONICAL_BASE = "http://worldhealthorganization.github.io/icvp/"
 export const DDCC_CANONICAL_BASE = "http://worldhealthorganization.github.io/ddcc/"
 export const FOLDER_IDENTIFIER_SYSTEM = "http://worldhealthorganization.github.io/ddcc/Folder"
 export const SUBMISSIONSET_IDENTIFIER_SYSTEM = "http://worldhealthorganization.github.io/ddcc/SubmissionSet"

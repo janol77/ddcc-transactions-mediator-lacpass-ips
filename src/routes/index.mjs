@@ -5,11 +5,12 @@ import swaggerUi from 'swagger-ui-express'
 const swaggerFile = require('../../swagger_output.json')
 import {buildReturnObject} from './utils'
 import ddccRoutes from './ddccRoutes'
+import icvpRoutes from './icvpRoutes'
 import logger from '../logger'
 
 const routes = express.Router()
 
-
+routes.use('/icvp', icvpRoutes)
 routes.use('/ddcc', ddccRoutes)
 routes.use('/doc', swaggerUi.serve, swaggerUi.setup(swaggerFile))
 // Add more routes here if needed

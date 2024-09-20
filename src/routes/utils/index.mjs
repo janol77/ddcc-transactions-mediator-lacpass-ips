@@ -9,15 +9,31 @@ import logger from "../../logger"
 import { FHIR_SERVER, FOLDER_IDENTIFIER_SYSTEM, STANDALONE, DDCC_IDENTIFIER_SYSTEM } from "../../config/config"
 
 import { processDDCCBundle } from "./ddccBundle"
-import { createProvideDocumentBundle } from "./provideDocumentBundle"
-import { convertQRToCoreDataSet, convertIPSToCoreDataSet } from "./logicalModel"
-import { addAllContent } from "./qr"
+import { convertQRToCoreDataSet, convertQRToDVC, convertIPSToCoreDataSet } from "./logicalModel"
+import { addAllContent, generateDVCCert } from "./qr"
 
 import { PRIVATE_KEY, PUBLIC_KEY } from "./keys"
 
 import canonicalize from "./canonicalize"
 
 let urn
+
+const initializeDVCOptions = () => {
+  let options = {
+    resources: {},
+    questionnaire: "http://smart.who.int/icvp/Questionnaire/Questionnaire-DVCModel",
+    version : "",
+    responses: {},
+    ids: {},
+    images: {},
+    pdfs: {},
+    dataURLs: {},
+    content64: {}
+  }
+  options.now = new Date().toISOString()
+
+  return options
+}
 
 const initializeDDCCOptions = () => {
   let options = {
@@ -173,7 +189,8 @@ export const retrieveDocument = (url) => {
 
 //one needs to be defined for each questtonnaire handled
 let QResponseInitializers = {
-  "http://worldhealthorganization.github.io/ddcc/DDCCVSCoreDataSetQuestionnaire": initializeDDCCOptions
+  "http://worldhealthorganization.github.io/ddcc/DDCCVSCoreDataSetQuestionnaire": initializeDDCCOptions,
+  "http://smart.who.int/icvp/Questionnaire/Questionnaire-DVCModel": initializeDVCOptions
 }
 
 export const buildHealthCertificate = (DDCCParameters) => {
@@ -262,6 +279,63 @@ export const buildHealthCertificate = (DDCCParameters) => {
     })
   })
 }
+
+export const buildHealthCertificateDVC = (DVCParameters) => {
+  return new Promise(async (resolve) => {
+    
+    let QResponse = undefined
+    let options
+    if (DVCParameters.resourceType === "QuestionnaireResponse") {
+      QResponse = DVCParameters
+    } else {
+      resolve({
+        resourceType: "OperationOutcome",
+        issue: [
+          {
+            severity: "error",
+            code: "required",
+            diagnostics: "Invalid resource submitted."
+          }
+        ]
+      })
+    }
+
+    if ( !(QResponse.questionnaire in QResponseInitializers)) {
+      return resolve({
+        resourceType: "OperationOutcome",
+        issue: [
+          {
+            severity: "error",
+            code: "required",
+            diagnostics: "Do not know how to handle " + QResponse.questionnaire
+          }
+        ]
+      })
+    }
+
+    options = QResponseInitializers[QResponse.questionnaire]()
+    options.resources.QuestionnaireResponse = QResponse
+    options.responses = await convertQRToDVC(QResponse)
+    if ( !options.responses || options.responses.error ) {
+      return resolve({
+        resourceType: "OperationOutcome",
+        issue: [
+          {
+            severity: "error",
+            code: "required",
+            diagnostics: "Error converting to core data set: " + options.responses.error
+          }
+        ]
+      })
+    } else if ( options.responses.resourceType === "OperationOutcome" ) {
+      return resolve(options.responses)
+    }
+    compileHealthCertificateDVC(options, QResponse).then((results) => {
+      return resolve(results)
+    })
+  })
+}
+
 /*
 For IPS method:
 
@@ -569,6 +643,62 @@ const compileHealthCertificate = (options, QResponse) => {
           }
         ]
       })
+    })
+  })
+}
+
+const compileHealthCertificateDVC = (options, QResponse) => {
+  return new Promise(async (resolve) => {
+    let documentReference = {
+      resourceType: "DocumentReference",
+      status: "current",
+      type: {
+        coding: [
+          {
+            system: "http://worldhealthorganization.github.io/icvp/CodeSystem/DVC-QR-Type-CodeSystem",
+            code: "dvc"
+          }
+        ]
+      },
+      content: [
+        {
+          attachment: {
+            contentType: "image/png",
+            data:""
+          }
+        }
+      ]
+    }
+    try {
+      //logger.info(JSON.stringify(addBundle, null, 4))
+      logger.info("generate QR code")
+      await generateDVCCert(documentReference, options.responses)
+    } catch( err ) {
+      logger.error( "Failed to generate QR code: " + err.message )
+      return resolve({
+        resourceType: "OperationOutcome",
+        issue: [
+          {
+            severity: "error",
+            code: "exception",
+            diagnostics: err.message
+          }
+        ]
+      })
+    }
+    resolve(documentReference)
+
+  })
+  .catch( err => {
+    return resolve({
+      resourceType: "OperationOutcome",
+      issue: [
+        {
+          severity: "error",
+          code: "exception",
+          diagnostics: err.message
+        }
+      ]
     })
   })
 }

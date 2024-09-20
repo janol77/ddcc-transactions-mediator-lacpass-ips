@@ -1,11 +1,12 @@
 import * as who from "./who"
 import * as dcc from "./dcc"
 import * as shc from "./shc"
+import * as dvc from "./dvc"
 import logger from "../../../logger"
 import { createQRPDF } from "../pdf"
 import qrcode from "qrcode"
 
-const qrModules = { who, dcc, shc }
+const qrModules = { who, dcc, shc, dvc }
 
 export const addContent = ( qrDocRef, data ) => {
   return new Promise( async (resolve, reject) => {
@@ -73,3 +74,29 @@ export const addAllContent = ( bundle, data ) => {
     }
   })
 }
+
+export const generateDVCCert = (qrDocRef , data ) => {
+  return new Promise( async (resolve, reject) => {
+    try {
+      let serialized = await qrModules["dvc"].serialize( data )
+      try{
+        let qrContent = await qrModules["dvc"].qrContent( serialized )
+        await qrcode.toDataURL( qrContent, {errorCorrectionLevel: "Q" } ).then( async (url) => {
+          let qr64 = url.replace(/^data:image\/.+;base64,/, '')
+          let imageAttachment = qrDocRef.content.find( content => content.attachment && content.attachment.contentType === "image/png" )
+          imageAttachment.attachment.data = qr64
+          qrDocRef.content = [imageAttachment]
+          resolve()
+        }).catch(err => {
+          reject(err)
+        })
+      } catch(err) {
+        reject(err)
+      }
+      resolve()
+    } catch(err) {
+      reject(err)
+    }
+  })
+}
+
